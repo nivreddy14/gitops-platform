@@ -1,0 +1,170 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-operators
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-backstage
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-kafka
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-rabbitmq
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-operators
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/gitops-platform.git  # Update this
+    targetRevision: HEAD
+    path: base/operators
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-operators
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-kafka
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/gitops-platform.git  # Update this
+    targetRevision: HEAD
+    path: base/kafka
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-kafka
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  # Wait for operators to be ready
+  syncWaves:
+    - order: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-rabbitmq
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/gitops-platform.git  # Update this
+    targetRevision: HEAD
+    path: base/rabbitmq
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-rabbitmq
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  syncWaves:
+    - order: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-camelk
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/gitops-platform.git  # Update this
+    targetRevision: HEAD
+    path: base/camelk
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-operators
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform-backstage
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YOUR_ORG/gitops-platform.git  # Update this
+    targetRevision: HEAD
+    path: base/backstage
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: platform-backstage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  syncWaves:
+    - order: 20

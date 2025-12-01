@@ -1,0 +1,23 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Secrets (if any get added accidentally)
+*secret*.yaml
+*password*.txt
+
+# User-specific overlays (can be committed if desired)
+# overlays/users/*/
+
