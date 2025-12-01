@@ -1,0 +1,161 @@
+apiVersion: camel.apache.org/v1
+kind: IntegrationPlatform
+metadata:
+  name: camel-k
+  namespace: camelk
+spec:
+  build:
+    registry:
+      organization: camel-k
+      secret: registry-secret
+    maven:
+      caSecrets:
+        - key: ca.crt
+          name: custom-ca-cert
+      settings:
+        configMapKeyRef:
+          key: settings.xml
+          name: maven-settings
+    timeout: 10m
+  cluster: Kubernetes
+  profile: Kubernetes
+  traits:
+    container:
+      configuration:
+        requestCPU: "200m"
+        requestMemory: "256Mi"
+        limitCPU: "500m"
+        limitMemory: "512Mi"
+    jvm:
+      configuration:
+        enabled: true
+    gc:
+      configuration:
+        enabled: true
+    logging:
+      configuration:
+        color: false
+        level: INFO
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: maven-settings
+  namespace: camelk
+data:
+  settings.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 
+                                  https://maven.apache.org/xsd/settings-1.0.0.xsd">
+      <localRepository>/tmp/artifacts/m2</localRepository>
+      <mirrors>
+        <mirror>
+          <id>central-mirror</id>
+          <mirrorOf>central</mirrorOf>
+          <url>https://repo1.maven.org/maven2</url>
+        </mirror>
+      </mirrors>
+      <profiles>
+        <profile>
+          <id>default</id>
+          <repositories>
+            <repository>
+              <id>central</id>
+              <url>https://repo1.maven.org/maven2</url>
+              <releases>
+                <enabled>true</enabled>
+                <updatePolicy>never</updatePolicy>
+              </releases>
+              <snapshots>
+                <enabled>false</enabled>
+              </snapshots>
+            </repository>
+            <repository>
+              <id>apache-snapshots</id>
+              <url>https://repository.apache.org/snapshots</url>
+              <releases>
+                <enabled>false</enabled>
+              </releases>
+              <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>daily</updatePolicy>
+              </snapshots>
+            </repository>
+          </repositories>
+          <pluginRepositories>
+            <pluginRepository>
+              <id>central</id>
+              <url>https://repo1.maven.org/maven2</url>
+              <releases>
+                <enabled>true</enabled>
+              </releases>
+              <snapshots>
+                <enabled>false</enabled>
+              </snapshots>
+            </pluginRepository>
+          </pluginRepositories>
+        </profile>
+      </profiles>
+      <activeProfiles>
+        <activeProfile>default</activeProfile>
+      </activeProfiles>
+    </settings>
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: camel-k-integration
+  namespace: camelk
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: camel-k-integration
+  namespace: camelk
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - configmaps
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - camel.apache.org
+  resources:
+  - integrations
+  - integrations/status
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: camel-k-integration
+  namespace: camelk
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: camel-k-integration
+subjects:
+- kind: ServiceAccount
+  name: camel-k-integration
+  namespace: camelk

@@ -1,0 +1,50 @@
+# Repository Structure
+
+gitops-platform/
+├── README.md                          # Main documentation
+├── ARCHITECTURE.md                    # Architecture and design docs
+├── DEPLOYMENT.md                      # Deployment guide
+├── TESTING.md                         # Testing procedures
+├── .gitignore                         # Git ignore patterns
+│
+├── argocd/                            # ArgoCD Application definitions
+│   ├── platform-apps.yaml             # Platform applications
+│   └── user-template.yaml             # User namespace template
+│
+├── base/                              # Base Kustomize configurations
+│   ├── operators/                     # Operator deployments
+│   │   ├── strimzi-operator.yaml      # Kafka operator
+│   │   ├── rabbitmq-operator.yaml     # RabbitMQ operator
+│   │   └── kustomization.yaml
+│   │
+│   ├── camelk/                        # Camel K operator
+│   │   ├── camelk-operator.yaml
+│   │   ├── integration-platform.yaml
+│   │   └── kustomization.yaml
+│   │
+│   ├── kafka/                         # Kafka cluster
+│   │   ├── kafka-cluster.yaml         # 3-node Kafka + ZooKeeper
+│   │   └── kustomization.yaml
+│   │
+│   ├── rabbitmq/                      # RabbitMQ cluster
+│   │   ├── rabbitmq-cluster.yaml      # 3-node RabbitMQ
+│   │   └── kustomization.yaml
+│   │
+│   ├── backstage/                     # Backstage portal
+│   │   ├── backstage.yaml             # Backstage + PostgreSQL
+│   │   └── kustomization.yaml
+│   │
+│   └── user-namespace/                # User namespace template
+│       ├── user-template.yaml         # Complete user setup
+│       └── kustomization.yaml
+│
+├── overlays/                          # Environment overlays
+│   ├── development/                   # Dev environment
+│   └── production/                    # Prod environment
+│
+├── examples/                          # Example integrations
+│   └── camelk-integrations.yaml       # Sample Camel K routes
+│
+└── scripts/                           # Helper scripts
+    ├── quick-start.sh                 # Quick install script
+    └── create-user.sh                 # User provisioning
