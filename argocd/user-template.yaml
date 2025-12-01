@@ -17,7 +17,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/YOUR_ORG/gitops-platform.git  # Update this
+    repoURL: https://github.com/nivreddy14/gitops-platform.git  # CHANGE THIS
     targetRevision: HEAD
     path: base/user-namespace
     kustomize:
