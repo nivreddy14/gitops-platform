@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/<your-org>/<your-repo>.git  # CHANGE THIS
+    repoURL: https://github.com/nivreddy14/gitops-platform.git  # CHANGE THIS
     targetRevision: main
     path: argocd/applications
   destination:
