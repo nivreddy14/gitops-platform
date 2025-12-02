@@ -1,0 +1,96 @@
+# User Namespace ArgoCD Application Template
+# 
+# To create a new user namespace, copy this file and replace:
+# - USERNAME with the actual username (e.g., alice, bob)
+# - Update the repoURL to your Git repository
+#
+# Then apply: kubectl apply -f user-<username>-app.yaml
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: user-USERNAME
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/nivreddy14/gitops-platform.git  # Update this
+    targetRevision: HEAD
+    path: base/user-namespace
+    kustomize:
+      # Replace namespace and user-specific resources
+      nameSuffix: -USERNAME
+      namespace: user-USERNAME
+      patches:
+        - target:
+            kind: Namespace
+          patch: |-
+            - op: replace
+              path: /metadata/name
+              value: user-USERNAME
+            - op: add
+              path: /metadata/labels/user
+              value: USERNAME
+        - target:
+            kind: KafkaTopic
+          patch: |-
+            - op: replace
+              path: /metadata/name
+              value: USERNAME-events
+            - op: add
+              path: /metadata/labels/user
+              value: USERNAME
+        - target:
+            kind: KafkaUser
+          patch: |-
+            - op: replace
+              path: /metadata/name
+              value: USERNAME
+            - op: add
+              path: /metadata/labels/user
+              value: USERNAME
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: user-USERNAME
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+
+---
+# Example: User Alice
+# Uncomment and modify to create user alice
+
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: user-alice
+#   namespace: argocd
+# spec:
+#   project: default
+#   source:
+#     repoURL: https://github.com/YOUR_ORG/gitops-platform.git
+#     targetRevision: HEAD
+#     path: base/user-namespace
+#     kustomize:
+#       namespace: user-alice
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: user-alice
+#   syncPolicy:
+#     automated:
+#       prune: true
+#       selfHeal: true
+#     syncOptions:
+#       - CreateNamespace=true

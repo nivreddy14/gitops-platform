@@ -1,0 +1,143 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rabbitmq-cluster
+  namespace: rabbitmq
+spec:
+  replicas: 3
+  image: rabbitmq:3.13-management
+  service:
+    type: ClusterIP
+  persistence:
+    storageClassName: standard
+    storage: 10Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  rabbitmq:
+    additionalPlugins:
+      - rabbitmq_federation
+      - rabbitmq_federation_management
+      - rabbitmq_shovel
+      - rabbitmq_shovel_management
+      - rabbitmq_stream
+      - rabbitmq_stream_management
+    additionalConfig: |
+      cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
+      cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
+      cluster_formation.k8s.address_type = hostname
+      cluster_partition_handling = autoheal
+      queue_master_locator = min-masters
+      loopback_users.guest = false
+      default_user = guest
+      default_pass = guest
+    advancedConfig: |
+      [
+        {ra, [
+          {wal_max_size_bytes, 536870912},
+          {wal_compute_checksums, true}
+        ]},
+        {rabbit, [
+          {consumer_timeout, 3600000}
+        ]}
+      ].
+  override:
+    statefulSet:
+      spec:
+        template:
+          spec:
+            containers:
+            - name: rabbitmq
+              env:
+              - name: RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS
+                value: "+S 2:2 +sbwt none +sbwtdcpu none +sbwtdio none"
+              volumeMounts:
+              - name: rabbitmq-plugins
+                mountPath: /opt/rabbitmq/plugins
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-cluster-lb
+  namespace: rabbitmq
+spec:
+  type: ClusterIP
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+    - name: management
+      port: 15672
+      targetPort: 15672
+    - name: prometheus
+      port: 15692
+      targetPort: 15692
+  selector:
+    app.kubernetes.io/name: rabbitmq-cluster
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-definitions
+  namespace: rabbitmq
+data:
+  definitions.json: |
+    {
+      "users": [
+        {
+          "name": "guest",
+          "password": "guest",
+          "tags": "administrator"
+        }
+      ],
+      "vhosts": [
+        {
+          "name": "/"
+        },
+        {
+          "name": "/dev"
+        }
+      ],
+      "permissions": [
+        {
+          "user": "guest",
+          "vhost": "/",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        },
+        {
+          "user": "guest",
+          "vhost": "/dev",
+          "configure": ".*",
+          "write": ".*",
+          "read": ".*"
+        }
+      ],
+      "parameters": [],
+      "global_parameters": [
+        {
+          "name": "cluster_name",
+          "value": "rabbitmq-cluster"
+        }
+      ],
+      "policies": [
+        {
+          "vhost": "/",
+          "name": "ha-all",
+          "pattern": ".*",
+          "definition": {
+            "ha-mode": "all",
+            "ha-sync-mode": "automatic",
+            "ha-sync-batch-size": 5
+          }
+        }
+      ],
+      "queues": [],
+      "exchanges": [],
+      "bindings": []
+    }

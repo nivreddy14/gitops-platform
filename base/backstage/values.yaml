@@ -1,0 +1,95 @@
+backstage:
+  image:
+    registry: ghcr.io
+    repository: backstage/backstage
+    tag: latest
+  
+  # Resource limits
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  
+  # Environment variables
+  extraEnvVars:
+    - name: POSTGRES_HOST
+      value: postgres-service.backstage.svc.cluster.local
+    - name: POSTGRES_PORT
+      value: "5432"
+    - name: POSTGRES_USER
+      value: backstage
+    - name: POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: postgres-secret
+          key: postgres-password
+
+  # App config
+  appConfig:
+    app:
+      title: Event-Driven Platform
+      baseUrl: http://localhost:7007
+    
+    organization:
+      name: Your Organization
+    
+    backend:
+      baseUrl: http://localhost:7007
+      listen:
+        port: 7007
+      
+      database:
+        client: pg
+        connection:
+          host: ${POSTGRES_HOST}
+          port: ${POSTGRES_PORT}
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+      
+      cors:
+        origin: http://localhost:7007
+        methods: [GET, POST, PUT, DELETE]
+        credentials: true
+    
+    integrations:
+      github:
+        - host: github.com
+          # Add token via secret if needed
+    
+    catalog:
+      rules:
+        - allow: [Component, System, API, Resource, Location]
+      
+      locations:
+        - type: url
+          target: https://github.com/backstage/backstage/blob/master/packages/catalog-model/examples/all-components.yaml
+    
+    kubernetes:
+      serviceLocatorMethod:
+        type: multiTenant
+      clusterLocatorMethods:
+        - type: config
+          clusters:
+            - url: https://kubernetes.default.svc
+              name: local-cluster
+              authProvider: serviceAccount
+              skipTLSVerify: false
+              skipMetricsLookup: true
+
+# PostgreSQL configuration (using bundled chart)
+postgresql:
+  enabled: false  # We're using our own PostgreSQL
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    backend: 7007
+    name: http-backend
+
+# Ingress (optional)
+ingress:
+  enabled: false

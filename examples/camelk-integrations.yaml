@@ -1,0 +1,151 @@
+# Example Camel K Integrations
+# Apply these to your user namespace
+
+---
+apiVersion: camel.apache.org/v1
+kind: Integration
+metadata:
+  name: kafka-consumer
+spec:
+  traits:
+    container:
+      configuration:
+        requestCPU: "200m"
+        requestMemory: "256Mi"
+        limitCPU: "500m"
+        limitMemory: "512Mi"
+  sources:
+    - content: |
+        // Kafka Consumer Integration
+        from("kafka:events?brokers=event-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092&groupId=camelk-consumer&autoOffsetReset=earliest")
+          .routeId("kafka-consumer")
+          .log("Received message from Kafka: ${body}")
+          .to("log:kafka-events?showAll=true&multiline=true");
+      name: kafka-consumer.groovy
+
+---
+apiVersion: camel.apache.org/v1
+kind: Integration
+metadata:
+  name: kafka-producer
+spec:
+  traits:
+    container:
+      configuration:
+        requestCPU: "200m"
+        requestMemory: "256Mi"
+        limitCPU: "500m"
+        limitMemory: "512Mi"
+  sources:
+    - content: |
+        // Kafka Producer Integration
+        from("timer:tick?period=5000")
+          .routeId("kafka-producer")
+          .setBody().simple('{"timestamp": "${date:now:yyyy-MM-dd HH:mm:ss}", "message": "Event from Camel K", "id": "${random(1000)}"}')
+          .log("Producing message to Kafka: ${body}")
+          .to("kafka:events?brokers=event-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092");
+      name: kafka-producer.groovy
+
+---
+apiVersion: camel.apache.org/v1
+kind: Integration
+metadata:
+  name: rabbitmq-consumer
+spec:
+  traits:
+    container:
+      configuration:
+        requestCPU: "200m"
+        requestMemory: "256Mi"
+        limitCPU: "500m"
+        limitMemory: "512Mi"
+  sources:
+    - content: |
+        // RabbitMQ Consumer Integration
+        from("rabbitmq:events?hostname=rabbitmq-cluster.rabbitmq.svc.cluster.local&portNumber=5672&username=guest&password=guest&queue=events&autoDelete=false&durable=true")
+          .routeId("rabbitmq-consumer")
+          .log("Received message from RabbitMQ: ${body}")
+          .to("log:rabbitmq-events?showAll=true&multiline=true");
+      name: rabbitmq-consumer.groovy
+
+---
+apiVersion: camel.apache.org/v1
+kind: Integration
+metadata:
+  name: kafka-to-rabbitmq
+spec:
+  traits:
+    container:
+      configuration:
+        requestCPU: "200m"
+        requestMemory: "256Mi"
+        limitCPU: "500m"
+        limitMemory: "512Mi"
+  sources:
+    - content: |
+        // Bridge: Kafka to RabbitMQ
+        from("kafka:events?brokers=event-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092&groupId=kafka-to-rabbitmq&autoOffsetReset=earliest")
+          .routeId("kafka-to-rabbitmq-bridge")
+          .log("Forwarding message from Kafka to RabbitMQ: ${body}")
+          .to("rabbitmq:events?hostname=rabbitmq-cluster.rabbitmq.svc.cluster.local&portNumber=5672&username=guest&password=guest&queue=events&autoDelete=false&durable=true");
+      name: kafka-to-rabbitmq.groovy
+
+---
+apiVersion: camel.apache.org/v1
+kind: Integration
+metadata:
+  name: http-to-kafka
+spec:
+  traits:
+    container:
+      configuration:
+        requestCPU: "200m"
+        requestMemory: "256Mi"
+        limitCPU: "500m"
+        limitMemory: "512Mi"
+    service:
+      configuration:
+        enabled: true
+        type: ClusterIP
+  sources:
+    - content: |
+        // HTTP Webhook to Kafka
+        from("platform-http:/webhook")
+          .routeId("http-to-kafka")
+          .log("Received HTTP request: ${body}")
+          .setHeader("kafka.KEY", simple("${random(1000)}"))
+          .to("kafka:events?brokers=event-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092")
+          .setBody().constant('{"status": "accepted"}')
+          .setHeader("Content-Type", constant("application/json"));
+      name: http-to-kafka.groovy
+
+---
+apiVersion: camel.apache.org/v1
+kind: Integration
+metadata:
+  name: data-transformer
+spec:
+  traits:
+    container:
+      configuration:
+        requestCPU: "200m"
+        requestMemory: "256Mi"
+        limitCPU: "500m"
+        limitMemory: "512Mi"
+  sources:
+    - content: |
+        // Data Transformation Pipeline
+        from("kafka:events?brokers=event-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092&groupId=transformer&autoOffsetReset=earliest")
+          .routeId("data-transformer")
+          .log("Original message: ${body}")
+          .unmarshal().json()
+          .process(exchange -> {
+              def body = exchange.in.body
+              body.processed = true
+              body.processedAt = new Date().toString()
+              body.transformedBy = "camel-k"
+          })
+          .marshal().json()
+          .log("Transformed message: ${body}")
+          .to("kafka:commands?brokers=event-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092");
+      name: data-transformer.groovy
