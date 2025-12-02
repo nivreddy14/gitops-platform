@@ -5,269 +5,62 @@ metadata:
   name: operators
 ---
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: strimzi-cluster-operator
   namespace: operators
-  labels:
-    app: strimzi
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: strimzi-cluster-operator-global
+rules:
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [clusterrolebindings]
+    verbs: [get, create, delete, patch, update, watch]
+  - apiGroups: [storage.k8s.io]
+    resources: [storageclasses]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [list]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: strimzi-cluster-operator-namespaced
-  labels:
-    app: strimzi
 rules:
-  - apiGroups:
-      - ""
-    resources:
-      - serviceaccounts
-    verbs:
-      - get
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - rolebindings
-    verbs:
-      - get
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - configmaps
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - kafka.strimzi.io
-    resources:
-      - kafkas
-      - kafkas/status
-      - kafkaconnects
-      - kafkaconnects/status
-      - kafkaconnectors
-      - kafkaconnectors/status
-      - kafkamirrormakers
-      - kafkamirrormakers/status
-      - kafkabridges
-      - kafkabridges/status
-      - kafkamirrormaker2s
-      - kafkamirrormaker2s/status
-      - kafkarebalances
-      - kafkarebalances/status
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - core.strimzi.io
-    resources:
-      - strimzipodsets
-      - strimzipodsets/status
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-    verbs:
-      - get
-      - list
-      - watch
-      - delete
-  - apiGroups:
-      - ""
-    resources:
-      - services
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - endpoints
-    verbs:
-      - get
-      - list
-      - watch
-  - apiGroups:
-      - ""
-    resources:
-      - persistentvolumeclaims
-    verbs:
-      - get
-      - list
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - policy
-    resources:
-      - poddisruptionbudgets
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - secrets
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - apps
-    resources:
-      - deployments
-      - deployments/scale
-      - deployments/status
-      - statefulsets
-      - replicasets
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - ""
-    resources:
-      - events
-    verbs:
-      - create
-  - apiGroups:
-      - networking.k8s.io
-    resources:
-      - networkpolicies
-      - ingresses
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - route.openshift.io
-    resources:
-      - routes
-      - routes/custom-host
-    verbs:
-      - get
-      - list
-      - watch
-      - create
-      - delete
-      - patch
-      - update
-  - apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
-    verbs:
-      - create
-  - apiGroups:
-      - coordination.k8s.io
-    resources:
-      - leases
-    resourceNames:
-      - strimzi-cluster-operator
-    verbs:
-      - get
-      - update
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: strimzi-cluster-operator-global
-  labels:
-    app: strimzi
-rules:
-  - apiGroups:
-      - rbac.authorization.k8s.io
-    resources:
-      - clusterrolebindings
-    verbs:
-      - get
-      - create
-      - delete
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - storage.k8s.io
-    resources:
-      - storageclasses
-    verbs:
-      - get
-  - apiGroups:
-      - ""
-    resources:
-      - nodes
-    verbs:
-      - list
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: strimzi-kafka-broker
-  labels:
-    app: strimzi
-rules:
-  - apiGroups:
-      - ""
-    resources:
-      - nodes
-    verbs:
-      - get
+  - apiGroups: [""]
+    resources: [serviceaccounts, configmaps, services, secrets, persistentvolumeclaims, pods]
+    verbs: [get, create, delete, patch, update, list, watch]
+  - apiGroups: [kafka.strimzi.io]
+    resources: ['*']
+    verbs: ['*']
+  - apiGroups: [apps]
+    resources: [deployments, statefulsets]
+    verbs: [get, create, delete, patch, update, list, watch]
+  - apiGroups: [rbac.authorization.k8s.io]
+    resources: [rolebindings]
+    verbs: [get, create, delete, patch, update]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, create, delete, patch, update, list, watch]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies, ingresses]
+    verbs: [get, create, delete, patch, update, list, watch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: strimzi-cluster-operator
-  labels:
-    app: strimzi
 subjects:
   - kind: ServiceAccount
     name: strimzi-cluster-operator
@@ -275,21 +68,6 @@ subjects:
 roleRef:
   kind: ClusterRole
   name: strimzi-cluster-operator-global
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: strimzi-cluster-operator-kafka-broker-delegation
-  labels:
-    app: strimzi
-subjects:
-  - kind: ServiceAccount
-    name: strimzi-cluster-operator
-    namespace: operators
-roleRef:
-  kind: ClusterRole
-  name: strimzi-kafka-broker
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -297,8 +75,6 @@ kind: RoleBinding
 metadata:
   name: strimzi-cluster-operator
   namespace: operators
-  labels:
-    app: strimzi
 subjects:
   - kind: ServiceAccount
     name: strimzi-cluster-operator
@@ -311,10 +87,8 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: strimzi-cluster-operator-kafka
+  name: strimzi-cluster-operator
   namespace: kafka
-  labels:
-    app: strimzi
 subjects:
   - kind: ServiceAccount
     name: strimzi-cluster-operator
@@ -329,32 +103,20 @@ kind: Deployment
 metadata:
   name: strimzi-cluster-operator
   namespace: operators
-  labels:
-    app: strimzi
 spec:
   replicas: 1
   selector:
     matchLabels:
       name: strimzi-cluster-operator
-      strimzi.io/kind: cluster-operator
   template:
     metadata:
       labels:
         name: strimzi-cluster-operator
-        strimzi.io/kind: cluster-operator
     spec:
       serviceAccountName: strimzi-cluster-operator
-      # Use host network to fix API server connectivity issues in Kind
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: strimzi-cluster-operator
           image: quay.io/strimzi/operator:0.43.0
-          ports:
-            - containerPort: 8080
-              name: http
-          args:
-            - /opt/strimzi/bin/cluster_operator_run.sh
           env:
             - name: STRIMZI_NAMESPACE
               value: kafka
@@ -362,23 +124,25 @@ spec:
               value: "120000"
             - name: STRIMZI_OPERATION_TIMEOUT_MS
               value: "300000"
-            - name: STRIMZI_DEFAULT_TLS_SIDECAR_ENTITY_OPERATOR_IMAGE
-              value: quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
-            - name: STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE
-              value: quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
-            - name: STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE
-              value: quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
             - name: STRIMZI_KAFKA_IMAGES
               value: |
+                3.7.0=quay.io/strimzi/kafka:0.43.0-kafka-3.7.0
+                3.7.1=quay.io/strimzi/kafka:0.43.0-kafka-3.7.1
                 3.8.0=quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
             - name: STRIMZI_KAFKA_CONNECT_IMAGES
               value: |
+                3.7.0=quay.io/strimzi/kafka:0.43.0-kafka-3.7.0
+                3.7.1=quay.io/strimzi/kafka:0.43.0-kafka-3.7.1
                 3.8.0=quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
             - name: STRIMZI_KAFKA_MIRROR_MAKER_IMAGES
               value: |
+                3.7.0=quay.io/strimzi/kafka:0.43.0-kafka-3.7.0
+                3.7.1=quay.io/strimzi/kafka:0.43.0-kafka-3.7.1
                 3.8.0=quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
             - name: STRIMZI_KAFKA_MIRROR_MAKER_2_IMAGES
               value: |
+                3.7.0=quay.io/strimzi/kafka:0.43.0-kafka-3.7.0
+                3.7.1=quay.io/strimzi/kafka:0.43.0-kafka-3.7.1
                 3.8.0=quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
             - name: STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE
               value: quay.io/strimzi/operator:0.43.0
@@ -388,36 +152,26 @@ spec:
               value: quay.io/strimzi/operator:0.43.0
             - name: STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE
               value: quay.io/strimzi/kafka-bridge:0.29.0
-            - name: STRIMZI_DEFAULT_JMXTRANS_IMAGE
-              value: quay.io/strimzi/jmxtrans:0.43.0
-            - name: STRIMZI_DEFAULT_KANIKO_EXECUTOR_IMAGE
-              value: quay.io/strimzi/kaniko-executor:0.43.0
-            - name: STRIMZI_DEFAULT_MAVEN_BUILDER
-              value: quay.io/strimzi/maven-builder:0.43.0
             - name: STRIMZI_OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: STRIMZI_FEATURE_GATES
-              value: ""
+          resources:
+            requests:
+              cpu: 200m
+              memory: 384Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
           livenessProbe:
             httpGet:
               path: /healthy
-              port: http
+              port: 8080
             initialDelaySeconds: 30
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /ready
-              port: http
+              port: 8080
             initialDelaySeconds: 30
             periodSeconds: 30
-          resources:
-            limits:
-              cpu: "1"
-              memory: 512Mi
-            requests:
-              cpu: 200m
-              memory: 384Mi
-  strategy:
-    type: Recreate
